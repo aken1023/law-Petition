@@ -225,86 +225,99 @@
         </div>
     </div>
 
-    function formatAIResponse(message) {
-        // 將純文本轉換為結構化HTML
-        const sections = message.split('\n');
-        let formattedHtml = '';
-        let currentSection = '';
-    
-        for (const line of sections) {
-            if (line.match(/^[1-6]\./)) {
-                // 新章節開始
-                if (currentSection) {
-                    formattedHtml += `</section>`;
+    <script>
+        function formatAIResponse(message) {
+            const sections = message.split('\n');
+            let formattedHtml = '<div class="petition-content">';
+            let currentSection = '';
+        
+            for (const line of sections) {
+                if (line.match(/^[1-6]\./)) {
+                    if (currentSection) {
+                        formattedHtml += '</section>';
+                    }
+                    currentSection = line.substring(line.indexOf('.') + 1).trim();
+                    formattedHtml += `<section><h2>${currentSection}</h2>`;
+                } else if (line.includes('參考文件：')) {
+                    formattedHtml += `<div class="reference">${line}</div>`;
+                } else if (line.match(/第[\d]+條/)) {
+                    formattedHtml += `<div class="law-reference">${line}</div>`;
+                } else if (line.trim()) {
+                    formattedHtml += `<p>${line}</p>`;
                 }
-                currentSection = line.substring(line.indexOf('.') + 1).trim();
-                formattedHtml += `<section><h2>${currentSection}</h2>`;
-            } else if (line.includes('參考文件：')) {
-                formattedHtml += `<div class="reference">${line}</div>`;
-            } else if (line.match(/第[\d]+條/)) {
-                formattedHtml += `<div class="law-reference">${line}</div>`;
-            } else if (line.trim()) {
-                formattedHtml += `<p>${line}</p>`;
             }
-        }
-    
-        if (currentSection) {
-            formattedHtml += '</section>';
-        }
-    
-        return formattedHtml;
-    }
-
-    function addMessage(message, isUser) {
-        const chatContainer = document.getElementById('chat-container');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
         
-        if (!isUser) {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'edit-btn';
-            editBtn.textContent = '編輯';
-            editBtn.onclick = function() {
-                const textArea = document.createElement('textarea');
-                textArea.value = messageDiv.textContent;
-                textArea.style.width = '100%';
-                textArea.style.minHeight = '200px';
-                textArea.style.marginBottom = '10px';
-                
-                const saveBtn = document.createElement('button');
-                saveBtn.textContent = '保存';
-                saveBtn.onclick = function() {
-                    messageDiv.innerHTML = formatAIResponse(textArea.value);
+            if (currentSection) {
+                formattedHtml += '</section>';
+            }
+            formattedHtml += '</div>';
+            return formattedHtml;
+        }
+    
+        function addMessage(message, isUser) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            
+            if (!isUser) {
+                if (message.startsWith('發生錯誤：')) {
+                    messageDiv.className += ' error-message';
+                    messageDiv.textContent = message;
+                } else {
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'edit-btn';
+                    editBtn.textContent = '編輯';
+                    editBtn.onclick = function() {
+                        const textArea = document.createElement('textarea');
+                        // 獲取原始文本，保持格式
+                        const content = messageDiv.querySelector('.petition-content');
+                        const originalText = message.split('\n').map(line => line.trim()).join('\n');
+                        textArea.value = originalText;
+                        textArea.className = 'edit-textarea';
+                        textArea.style.width = '100%';
+                        textArea.style.minHeight = '200px';
+                        textArea.style.marginBottom = '10px';
+                        textArea.style.whiteSpace = 'pre-wrap';
+                        textArea.style.fontFamily = 'Microsoft JhengHei, sans-serif';
+                        
+                        const saveBtn = document.createElement('button');
+                        saveBtn.textContent = '保存';
+                        saveBtn.className = 'save-btn';
+                        saveBtn.onclick = function() {
+                            const formattedText = textArea.value.split('\n').map(line => line.trim()).join('\n');
+                            messageDiv.innerHTML = formatAIResponse(formattedText);
+                            messageDiv.appendChild(editBtn);
+                        };
+                        
+                        messageDiv.textContent = '';
+                        messageDiv.appendChild(textArea);
+                        messageDiv.appendChild(saveBtn);
+                    };
+                    messageDiv.innerHTML = formatAIResponse(message);
                     messageDiv.appendChild(editBtn);
-                };
-                
-                messageDiv.textContent = '';
-                messageDiv.appendChild(textArea);
-                messageDiv.appendChild(saveBtn);
-            };
-            messageDiv.appendChild(editBtn);
-            messageDiv.innerHTML = formatAIResponse(message);
-        } else {
-            messageDiv.textContent = message;
-        }
-        
-        chatContainer.appendChild(messageDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-
-    function addLoadingAnimation() {
-        const chatContainer = document.getElementById('chat-container');
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading-container';
-        loadingDiv.innerHTML = `
-            <div class="loading-spinner"></div>
-            <div>AI 正在生成訴狀書，請稍候...</div>
-        `;
-        chatContainer.appendChild(loadingDiv);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-        return loadingDiv;
-    }
+                }
+            } else {
+                messageDiv.textContent = message;
+            }
+            
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
     
+        function addLoadingAnimation() {
+            const chatContainer = document.getElementById('chat-container');
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-container';
+            loadingDiv.innerHTML = `
+                <div class="loading-spinner"></div>
+                <div class="loading-text">AI 正在生成訴狀書，請稍候...</div>
+            `;
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return loadingDiv;
+        }
+    </script>
+
     <style>
         .petition-content {
             padding: 20px;
@@ -359,5 +372,82 @@
             color: #666;
         }
     </style>
+
+    <script>
+        async function sendMessage() {
+            const caseType = document.getElementById('case-type').value.trim();
+            const partyInfo = document.getElementById('party-info').value.trim();
+            const caseFacts = document.getElementById('case-facts').value.trim();
+            const demands = document.getElementById('demands').value.trim();
+            
+            if (!caseType || !partyInfo || !caseFacts || !demands) {
+                alert('請填寫所有必要信息');
+                return;
+            }
+            
+            const message = `
+案件類型：${caseType}
+當事人基本信息：${partyInfo}
+案件事實經過：${caseFacts}
+訴求：${demands}`;
+
+            const input_data = {
+                case_type: caseType,
+                party_info: partyInfo,
+                case_facts: caseFacts,
+                demands: demands
+            };
+            
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '生成中...';
+            
+            // 禁用所有輸入框
+            document.getElementById('case-type').disabled = true;
+            document.getElementById('party-info').disabled = true;
+            document.getElementById('case-facts').disabled = true;
+            document.getElementById('demands').disabled = true;
+            
+            addMessage(message, true);
+            const loadingDiv = addLoadingAnimation();
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        input_data: input_data
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`服務器響應錯誤 (${response.status})`);
+                }
+                
+                const data = await response.json();
+                loadingDiv.remove();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                } else {
+                    addMessage(data.response, false);
+                }
+            } catch (error) {
+                loadingDiv.remove();
+                addMessage(`發生錯誤：${error.message}`, false);
+            } finally {
+                // 恢復所有輸入框和按鈕
+                submitBtn.disabled = false;
+                submitBtn.textContent = '生成訴狀';
+                document.getElementById('case-type').disabled = false;
+                document.getElementById('party-info').disabled = false;
+                document.getElementById('case-facts').disabled = false;
+                document.getElementById('demands').disabled = false;
+            }
+        }
+    </script>
 </body>
 </html>
