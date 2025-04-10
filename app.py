@@ -41,11 +41,27 @@ def load_pdf_content():
 def home():
     if 'conversation_history' not in session:
         session['conversation_history'] = []
-    return render_template('index.html')
+    if 'input_history' not in session:
+        session['input_history'] = {
+            'case_type': '',
+            'party_info': '',
+            'case_facts': '',
+            'demands': ''
+        }
+    return render_template('index.html', input_history=session.get('input_history', {}))
 
 @app.route('/chat', methods=['POST'])
 def chat():
     user_message = request.json.get('message')
+    input_data = request.json.get('input_data', {})
+    
+    # 保存輸入歷史
+    session['input_history'] = {
+        'case_type': input_data.get('case_type', ''),
+        'party_info': input_data.get('party_info', ''),
+        'case_facts': input_data.get('case_facts', ''),
+        'demands': input_data.get('demands', '')
+    }
     pdf_content = load_pdf_content()
     
     # 獲取對話歷史

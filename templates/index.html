@@ -197,181 +197,167 @@
         </ul>
     </div>
     <div id="chat-container"></div>
-    <!-- 在 input-container 部分的代碼修改 -->
+    <!-- 在 input-container 部分修改 -->
     <div id="input-container">
         <div style="width: 100%;">
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">案件類型：</label>
-                <input type="text" id="case-type" placeholder="例如：民事、刑事、行政訴訟等" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <input type="text" id="case-type" placeholder="例如：民事、刑事、行政訴訟等" 
+                       value="{{ input_history.get('case_type', '') }}"
+                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
             </div>
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">當事人基本信息：</label>
-                <textarea id="party-info" placeholder="請填寫當事人姓名、身份證字號、住址等基本信息" style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                <textarea id="party-info" placeholder="請填寫當事人姓名、身份證字號、住址等基本信息" 
+                          style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">{{ input_history.get('party_info', '') }}</textarea>
             </div>
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">案件事實經過：</label>
-                <textarea id="case-facts" placeholder="請詳細描述案件發生的經過、時間、地點等信息" style="width: 100%; min-height: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                <textarea id="case-facts" placeholder="請詳細描述案件發生的經過、時間、地點等信息" 
+                          style="width: 100%; min-height: 150px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">{{ input_history.get('case_facts', '') }}</textarea>
             </div>
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">您的訴求：</label>
-                <textarea id="demands" placeholder="請說明您希望法院做出的判決內容" style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+                <textarea id="demands" placeholder="請說明您希望法院做出的判決內容" 
+                          style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">{{ input_history.get('demands', '') }}</textarea>
             </div>
             <button onclick="sendMessage()" id="submit-btn" style="width: 100%;">生成訴狀</button>
         </div>
     </div>
 
-    <script>
-        function formatAIResponse(message) {
-            // 將純文本轉換為結構化HTML
-            const sections = message.split('\n');
-            let formattedHtml = '';
-            let currentSection = '';
-        
-            for (const line of sections) {
-                if (line.match(/^[1-6]\./)) {
-                    // 新章節開始
-                    if (currentSection) {
-                        formattedHtml += `</section>`;
-                    }
-                    currentSection = line.substring(line.indexOf('.') + 1).trim();
-                    formattedHtml += `<section><h2>${currentSection}</h2>`;
-                } else if (line.includes('參考文件：')) {
-                    formattedHtml += `<div class="reference">${line}</div>`;
-                } else if (line.match(/第[\d]+條/)) {
-                    formattedHtml += `<div class="law-reference">${line}</div>`;
-                } else if (line.trim()) {
-                    formattedHtml += `<p>${line}</p>`;
+    function formatAIResponse(message) {
+        // 將純文本轉換為結構化HTML
+        const sections = message.split('\n');
+        let formattedHtml = '';
+        let currentSection = '';
+    
+        for (const line of sections) {
+            if (line.match(/^[1-6]\./)) {
+                // 新章節開始
+                if (currentSection) {
+                    formattedHtml += `</section>`;
                 }
+                currentSection = line.substring(line.indexOf('.') + 1).trim();
+                formattedHtml += `<section><h2>${currentSection}</h2>`;
+            } else if (line.includes('參考文件：')) {
+                formattedHtml += `<div class="reference">${line}</div>`;
+            } else if (line.match(/第[\d]+條/)) {
+                formattedHtml += `<div class="law-reference">${line}</div>`;
+            } else if (line.trim()) {
+                formattedHtml += `<p>${line}</p>`;
             }
-        
-            if (currentSection) {
-                formattedHtml += '</section>';
-            }
-        
-            return formattedHtml;
         }
+    
+        if (currentSection) {
+            formattedHtml += '</section>';
+        }
+    
+        return formattedHtml;
+    }
 
-        function addMessage(message, isUser) {
-            const chatContainer = document.getElementById('chat-container');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
-            
-            if (!isUser) {
-                const editBtn = document.createElement('button');
-                editBtn.className = 'edit-btn';
-                editBtn.textContent = '編輯';
-                editBtn.onclick = function() {
-                    const textArea = document.createElement('textarea');
-                    textArea.value = messageDiv.textContent;
-                    textArea.style.width = '100%';
-                    textArea.style.minHeight = '200px';
-                    textArea.style.marginBottom = '10px';
-                    
-                    const saveBtn = document.createElement('button');
-                    saveBtn.textContent = '保存';
-                    saveBtn.onclick = function() {
-                        messageDiv.innerHTML = formatAIResponse(textArea.value);
-                        messageDiv.appendChild(editBtn);
-                    };
-                    
-                    messageDiv.textContent = '';
-                    messageDiv.appendChild(textArea);
-                    messageDiv.appendChild(saveBtn);
+    function addMessage(message, isUser) {
+        const chatContainer = document.getElementById('chat-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+        
+        if (!isUser) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.textContent = '編輯';
+            editBtn.onclick = function() {
+                const textArea = document.createElement('textarea');
+                textArea.value = messageDiv.textContent;
+                textArea.style.width = '100%';
+                textArea.style.minHeight = '200px';
+                textArea.style.marginBottom = '10px';
+                
+                const saveBtn = document.createElement('button');
+                saveBtn.textContent = '保存';
+                saveBtn.onclick = function() {
+                    messageDiv.innerHTML = formatAIResponse(textArea.value);
+                    messageDiv.appendChild(editBtn);
                 };
-                messageDiv.appendChild(editBtn);
-                messageDiv.innerHTML = formatAIResponse(message);
-            } else {
-                messageDiv.textContent = message;
-            }
-            
-            chatContainer.appendChild(messageDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                messageDiv.textContent = '';
+                messageDiv.appendChild(textArea);
+                messageDiv.appendChild(saveBtn);
+            };
+            messageDiv.appendChild(editBtn);
+            messageDiv.innerHTML = formatAIResponse(message);
+        } else {
+            messageDiv.textContent = message;
         }
+        
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 
-        function addLoadingAnimation() {
-            const chatContainer = document.getElementById('chat-container');
-            const loadingDiv = document.createElement('div');
-            loadingDiv.className = 'loading-container';
-            loadingDiv.innerHTML = `
-                <div class="loading-spinner"></div>
-                <div>AI 正在生成訴狀書，請稍候...</div>
-            `;
-            chatContainer.appendChild(loadingDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-            return loadingDiv;
+    function addLoadingAnimation() {
+        const chatContainer = document.getElementById('chat-container');
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-container';
+        loadingDiv.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div>AI 正在生成訴狀書，請稍候...</div>
+        `;
+        chatContainer.appendChild(loadingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        return loadingDiv;
+    }
+    
+    <style>
+        .petition-content {
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
         }
-
-        // 修改 sendMessage 函數
-        async function sendMessage() {
-            const caseType = document.getElementById('case-type').value.trim();
-            const partyInfo = document.getElementById('party-info').value.trim();
-            const caseFacts = document.getElementById('case-facts').value.trim();
-            const demands = document.getElementById('demands').value.trim();
-            
-            if (!caseType || !partyInfo || !caseFacts || !demands) {
-                alert('請填寫所有必要信息');
-                return;
-            }
-            
-            const message = `
-        案件類型：${caseType}
-        當事人基本信息：${partyInfo}
-        案件事實經過：${caseFacts}
-        訴求：${demands}`;
-            
-            const submitBtn = document.getElementById('submit-btn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = '生成中...';
-            
-            // 禁用所有輸入框
-            document.getElementById('case-type').disabled = true;
-            document.getElementById('party-info').disabled = true;
-            document.getElementById('case-facts').disabled = true;
-            document.getElementById('demands').disabled = true;
-            
-            addMessage(message, true);
-            const loadingDiv = addLoadingAnimation();
-            
-            try {
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ message: message })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('網絡請求失敗');
-                }
-                
-                const data = await response.json();
-                loadingDiv.remove();
-                
-                if (data.error) {
-                    addMessage('發生錯誤：' + data.error, false);
-                } else {
-                    addMessage(data.response, false);
-                }
-            } catch (error) {
-                loadingDiv.remove();
-                addMessage('發生錯誤：' + error.message, false);
-            } finally {
-                // 恢復所有輸入框和按鈕
-                submitBtn.disabled = false;
-                submitBtn.textContent = '生成訴狀';
-                document.getElementById('case-type').disabled = false;
-                document.getElementById('party-info').disabled = false;
-                document.getElementById('case-facts').disabled = false;
-                document.getElementById('demands').disabled = false;
-                
-                // 清空輸入框
-                document.getElementById('case-type').value = '';
-                document.getElementById('party-info').value = '';
-                document.getElementById('case-facts').value = '';
-                document.getElementById('demands').value = '';
-            }
+        
+        .petition-content h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
         }
-    </script>
+        
+        .petition-content section {
+            margin-bottom: 20px;
+        }
+        
+        .reference {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-left: 3px solid #6c757d;
+            margin: 10px 0;
+        }
+        
+        .law-reference {
+            color: #2196F3;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .edit-textarea {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .loading-text {
+            margin-left: 15px;
+            font-size: 16px;
+            color: #666;
+        }
+    </style>
 </body>
 </html>
