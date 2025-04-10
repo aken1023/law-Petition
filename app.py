@@ -52,9 +52,10 @@ def chat():
     conversation_history = session.get('conversation_history', [])
     
     prompt = f"""
-    請你擔任一位專業的律師。以下是參考資料庫的內容：
+    請你擔任一位專業的律師。以下是參考附件的內容的架構：
 
     {pdf_content}
+    需要顯示出參考的文件出處
 
     歷史對話記錄：
     {' '.join(conversation_history)}
@@ -84,7 +85,7 @@ def chat():
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
-        "max_tokens": 3000
+        "max_tokens": 4000
     }
     
     try:
